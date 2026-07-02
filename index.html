@@ -45,8 +45,10 @@
 </div>
 
 <script>
-   window.onload = function() {
-    if(GAS_URL === "你的GAS網頁應用程式網址") {
+const GAS_URL = "https://script.google.com/macros/s/AKfycbwCKD0ob2w5o6HxLpRqhkG_iG5R6P0F2AOIlpZU-AIdrVmv-VTa72q09nwlC9-_XybosA/exec";
+    
+    window.onload = function() {
+    if(GAS_URL === "https://script.google.com/macros/s/AKfycbwCKD0ob2w5o6HxLpRqhkG_iG5R6P0F2AOIlpZU-AIdrVmv-VTa72q09nwlC9-_XybosA/exec") {
         document.getElementById('api-data').innerHTML = "<tr><td colspan='4' style='color:red;'>請先在程式碼中修改為您的 GAS 網址！</td></tr>";
         return;
     }
