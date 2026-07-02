@@ -45,36 +45,31 @@
 </div>
 
 <script>
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbwCKD0ob2w5o6HxLpRqhkG_iG5R6P0F2AOIlpZU-AIdrVmv-VTa72q09nwlC9-_XybosA/exec"; // <-- 記得換成你最新部署的網址
+   window.onload = function() {
+    if(GAS_URL === "你的GAS網頁應用程式網址") {
+        document.getElementById('api-data').innerHTML = "<tr><td colspan='4' style='color:red;'>請先在程式碼中修改為您的 GAS 網址！</td></tr>";
+        return;
+    }
 
-    window.onload = function() {
-        if(GAS_URL === "你的GAS網頁應用程式網址") {
-            document.getElementById('api-data').innerHTML = "<tr><td colspan='4' style='color:red;'>請先在程式碼中修改為您的 GAS 網址！</td></tr>";
-            return;
-        }
-
-        // 加上 redirect: 'follow' 確保 Google Apps Script 的轉址能被正確追蹤
-        fetch(GAS_URL, {
-            method: 'GET',
-            redirect: 'follow'
-        })
-        .then(res => {
-            if (!res.ok) throw new Error('網路回應不成功');
-            return res.json();
-        })
-        .then(data => {
-            if (data.error) {
-                showError("Google 後端錯誤: " + data.error);
-                return;
-            }
+    const callbackName = 'jsonpCallback_' + Date.now();
+    window[callbackName] = function(data) {
+        if (data.error) {
+            showError("Google 後端錯誤: " + data.error);
+        } else {
             renderTable(data);
             renderChart(data);
-        })
-        .catch(err => {
-            console.error("無法取得後台資料:", err);
-            showError("無法連線至後端取得資料，請確認 GAS 是否已開放給「所有人(Anyone)」存取。錯誤訊息: " + err.message);
-        });
+        }
+        delete window[callbackName];
+        document.body.removeChild(script);
     };
+
+    const script = document.createElement('script');
+    script.src = GAS_URL + '?callback=' + callbackName;
+    script.onerror = function() {
+        showError("無法連線至後端取得資料，請確認 GAS 是否已開放給「所有人(Anyone)」存取。");
+    };
+    document.body.appendChild(script);
+};
 
     function showError(msg) {
         document.getElementById('error-zone').innerHTML = `<div class="error-msg">${msg}</div>`;
