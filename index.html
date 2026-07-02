@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>預約管理後台</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f8f9fa; padding: 30px; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        h2, h3 { color: #333; }
+        .chart-container { width: 100%; height: 300px; margin-bottom: 40px; position: relative; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #f1f1f1; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        .error-msg { color: red; font-weight: bold; padding: 10px; background: #fff0f0; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>預約管理數據後台</h2>
+    <hr>
+    
+    <h3>📊 每日預約人數統計</h3>
+    <div class="chart-container">
+        <canvas id="bookingChart"></canvas>
+    </div>
+
+    <h3>📋 預約明細清單</h3>
+    <div id="error-zone"></div>
+    <table>
+        <thead>
+            <tr>
+                <th>姓名</th>
+                <th>電話</th>
+                <th>預約日期</th>
+                <th>預約時段</th>
+            </tr>
+        </thead>
+        <tbody id="api-data">
+            <tr><td colspan="4">資料載入中...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<script>
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbxRdLfvqsSpX_ZqUSJdm8Qe3uJjn43iteAlbnmg3FtZtZnsmDt9Gm_uPBJ51YyTnX8gPg/exec"; // <-- 記得換成你最新部署的網址
+
+    window.onload = function() {
+        if(GAS_URL === "你的GAS網頁應用程式網址") {
+            document.getElementById('api-data').innerHTML = "<tr><td colspan='4' style='color:red;'>請先在程式碼中修改為您的 GAS 網址！</td></tr>";
+            return;
+        }
+
+        // 加上 redirect: 'follow' 確保 Google Apps Script 的轉址能被正確追蹤
+        fetch(GAS_URL, {
+            method: 'GET',
+            redirect: 'follow'
+        })
+        .then(res => {
+            if (!res.ok) throw new Error('網路回應不成功');
+            return res.json();
+        })
+        .then(data => {
+            if (data.error) {
+                showError("Google 後端錯誤: " + data.error);
+                return;
+            }
+            renderTable(data);
+            renderChart(data);
+        })
+        .catch(err => {
+            console.error("無法取得後台資料:", err);
+            showError("無法連線至後端取得資料，請確認 GAS 是否已開放給「所有人(Anyone)」存取。錯誤訊息: " + err.message);
+        });
+    };
+
+    function showError(msg) {
+        document.getElementById('error-zone').innerHTML = `<div class="error-msg">${msg}</div>`;
+        document.getElementById('api-data').innerHTML = "<tr><td colspan='4'>載入失敗</td></tr>";
+    }
+
+    function renderTable(data) {
+        const tbody = document.getElementById('api-data');
+        tbody.innerHTML = "";
+        
+        if(!data || data.length === 0) {
+            tbody.innerHTML = "<tr><td colspan='4'>目前尚無預約資料</td></tr>";
+            return;
+        }
+
+        data.forEach(item => {
+            let row = `<tr>
+                <td>${item.name || ''}</td>
+                <td>${item.phone || ''}</td>
+                <td>${item.date || ''}</td>
+                <td>${item.time || ''}</td>
+            </tr>`;
+            tbody.innerHTML += row;
+        });
+    }
+
+    function renderChart(data) {
+        if(!data || data.length === 0) return;
+
+        const dateCounts = {};
+        data.forEach(item => {
+            if(item.date) {
+                dateCounts[item.date] = (dateCounts[item.date] || 0) + 1;
+            }
+        });
+
+        const sortedDates = Object.keys(dateCounts).sort();
+        const counts = sortedDates.map(date => dateCounts[date]);
+
+        const ctx = document.getElementById('bookingChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: sortedDates,
+                datasets: [{
+                    label: '預約人數',
+                    data: counts,
+                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                }
+            }
+        });
+    }
+</script>
+</body>
+</html>
